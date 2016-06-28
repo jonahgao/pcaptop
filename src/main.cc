@@ -12,56 +12,21 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 #include "net_types.h"
+#include "common.h"
+#include "ui.h"
 
 
 // SIZE_ETHERNET + MAX IP HEADER LENGTH + TCP FRIST 4 BYTES, 80 shouble be enough
 #define CAPTURE_LENGTH 80
 #define READ_TIMEOUT 1000 //ms
 
-struct Stat {
-    Stat() :in(0), out(0) {
-    }
-
-    uint64_t in;
-    uint64_t out;
-};
-
-struct OutputStat {
-    std::string addr;
-    Stat stat;
-};
-
-inline bool outputStatGreater(const OutputStat& lh, const OutputStat& rh) {
-   return (lh.stat.in + lh.stat.out) > (rh.stat.in +  rh.stat.out);
-}
-
-std::string interface = "eth0";
-uint16_t port = 50088;
-bool verbose = false;
-pcap_t *pt = NULL;
-struct in_addr if_ip_addr;              // 接口IP地址,用来区分direction
-std::map<std::string, Stat> stat_map;
-
-void printResult() {
-    std::vector<OutputStat> vec;
-    for (std::map<std::string, Stat>::iterator it = stat_map.begin(); it != stat_map.end(); ++it) {
-        OutputStat st;
-        st.addr = it->first;
-        st.stat = it->second;
-        vec.push_back(st);
-    }
-
-    std::sort(vec.begin(), vec.end(), outputStatGreater);
-
-    printf("***************************************\n");
-    printf("remote\tin\tout\ttotal(bytes)\n");
-    for (std::vector<OutputStat>::iterator it = vec.begin(); it != vec.end(); ++it)
-        printf("%s\t%lu\t%lu\t%lu\n", it->addr.c_str(), it->stat.in, it->stat.out, it->stat.in + it->stat.out);
-
-    printf("***************************************\n");
-}
-
+static std::string interface = "eth0";
+static uint16_t port = 50088;
+static bool verbose = false;
+static pcap_t *pt = NULL;
+static struct in_addr if_ip_addr;              // 接口IP地址,用来区分direction
 
 /** 
  * 获取接口IP地址
@@ -105,23 +70,23 @@ void getPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char* pack
         return;
     }
 
+    static DataPoint data;
+    data.flags = tcp->th_flags;
+    data.pktlen = pkthdr->len;
     uint16_t sport = ntohs(tcp->th_sport);
     uint16_t dport = ntohs(tcp->th_dport);
-    static char address[100];
     if (ip->ip_dst.s_addr == if_ip_addr.s_addr && dport == port) { // incoming
-        snprintf(address, 100, "%s:%d", inet_ntoa(ip->ip_src), sport);
-        stat_map[address].in += pkthdr->len;
-        if (verbose) {
-            printf("incoming packet from %s, length: %d\n", address, pkthdr->len);
-        }
+        data.ip = inet_ntoa(ip->ip_src);
+        data.port = sport;
+        data.direc = IN;
     }
     else if (ip->ip_src.s_addr == if_ip_addr.s_addr && sport == port) { // outcoming
-        snprintf(address, 100, "%s:%d", inet_ntoa(ip->ip_dst), dport);
-        stat_map[address].out += pkthdr->len;
-        if (verbose) {
-            printf("outcoming packet to %s, length: %d\n", address, pkthdr->len);
-        }
+        data.ip = inet_ntoa(ip->ip_dst);
+        data.port = dport;
+        data.direc = OUT;
     }
+
+    addData(data);
 }
 
 volatile sig_atomic_t in_signal_handler = 0;
@@ -131,9 +96,6 @@ void signalHandler(int signo) {
 
     in_signal_handler = 1;
 
-    if (pt) pcap_close(pt);
-
-    printResult();
     exit(0);
 }
 
@@ -195,6 +157,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "set filter expr error: %s\n", pcap_geterr(pt));
         exit(EXIT_FAILURE);
     }
+
+    initUI(interface.c_str());
 
     setupSignals();
 
