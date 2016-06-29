@@ -46,6 +46,7 @@ void getInterfaceIP(const char *interface, struct in_addr* if_ip_addr) {
     if (ioctl(s, SIOCGIFADDR, &ifr) < 0) {
         fprintf(stderr, "Unable to get IP address for interface: %s\n", interface);
         perror("ioctl(SIOCGIFADDR)");
+        exitUI();
         exit(-1);
     }
     else {
@@ -95,6 +96,8 @@ void signalHandler(int signo) {
         raise(signo);
 
     in_signal_handler = 1;
+
+    exitUI();
 
     exit(0);
 }

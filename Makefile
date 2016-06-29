@@ -1,6 +1,6 @@
 
 CXXFLAGS += -O2
-LDFLAGS += -lpcap
+LDFLAGS += -lpcap -lncurses -lpthread
 
 SRC=$(shell echo src/*.cc)
 OBJ=$(SRC:%.cc=obj/%.o)

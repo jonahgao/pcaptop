@@ -1,7 +1,9 @@
 # pcaptop
 
 ## install
-prerequisites: libpcap 
+prerequisites: 
+- libpcap 
+- libncurses
 
 ## usage
 pcaptop:    

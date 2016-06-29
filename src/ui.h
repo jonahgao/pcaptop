@@ -5,6 +5,8 @@
 
 void initUI(const char* interface);
 
+void exitUI();
+
 void addData(const DataPoint& dp);
 
 
