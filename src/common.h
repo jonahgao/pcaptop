@@ -2,6 +2,7 @@
 #define COMMON_H_Q8O1RUBZ
 #include <iostream>
 #include <stdint.h>
+#include <time.h>
 
 enum Direction {
     IN,
@@ -18,6 +19,8 @@ struct DataPoint {
 
 
 std::ostream& operator<<(std::ostream&os, const DataPoint& dp);
+
+time_t getCurrentSeconds();
 
 
 #endif /* end of include guard: COMMON_H_Q8O1RUBZ */

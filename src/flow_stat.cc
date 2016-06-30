@@ -1,12 +1,12 @@
 #include "flow_stat.h"
 
 #include <limits>
+#include <algorithm>
 #include "net_types.h"
 
 FlowStat::FlowStat(int district, int precision) :
     district_(district),
-    precision_(precision),
-    capacity_(district / precision)
+    precision_(precision)
 {
 }
 
@@ -21,17 +21,22 @@ void FlowStat::addFlow(const DataPoint& dp, FlowCount& v) {
         v.out += dp.pktlen;
 }
 
-void FlowStat::addData(const DataPoint& dp, time_t t) {
-    t = t / precision_;
+void FlowStat::removeStaleUnlock(int dist) {
+    while (!datas_.empty() && datas_.front().dist <= dist - district_ / precision_) {
+        datas_.pop_front();
+    }
+}
+
+void FlowStat::addData(const DataPoint& dp, time_t tm) {
+    int dist = tm / precision_;
 
     LockGuard guard(mu_);
 
-    if (datas_.empty() || datas_.back().t != t) {
+    if (datas_.empty() || datas_.back().dist != dist) {
         datas_.push_back(Elem());
-        datas_.back().t = t;
+        datas_.back().dist = dist;
 
-        while (datas_.size() > capacity_) 
-            datas_.pop_front();
+        removeStaleUnlock(dist);
     }
 
     FlowCntMap& m = datas_.back().m;
@@ -64,11 +69,51 @@ void FlowStat::addData(const DataPoint& dp, time_t t) {
     }
 }
 
-void FlowStat::getResults(int count, std::vector<Result>& vec) {
+struct FlowGreaterComp {
+    FlowStat::SortType t;
+
+    FlowGreaterComp(FlowStat::SortType _t) : t(_t) {
+    }
+
+    bool operator()(const FlowStat::Result& lh, const FlowStat::Result& rh) {
+        switch (t) {
+            case FlowStat::SORT_BY_IN:
+                return lh.flow.in > rh.flow.in;
+                break;
+            case FlowStat::SORT_BY_OUT:
+                return lh.flow.out > rh.flow.out;
+                break;
+            default:
+                return (lh.flow.in + lh.flow.out) > (rh.flow.in + rh.flow.out);
+        }
+    }
+};
+
+
+void FlowStat::getResults(int count, SortType type, std::vector<Result>& vec) {
     FlowCntMap aggre;
 
     {
         LockGuard guard(mu_);
+        
+        removeStaleUnlock(getCurrentSeconds() / precision_);
+
+        for (std::deque<Elem>::iterator it = datas_.begin(); it!= datas_.end(); ++it) {
+            FlowCntMap &m = it->m;
+            for (FlowCntMap::iterator iter = m.begin(); iter != m.end(); ++iter) {
+                aggre[iter->first].in += iter->second.in;
+                aggre[iter->first].out += iter->second.out;
+            }
+        }
     }
-    
+
+    vec.reserve(aggre.size());
+    for (FlowCntMap::iterator it = aggre.begin(); it != aggre.end(); ++it) {
+        vec.push_back(Result());
+        vec.back().addr = it->first;
+        vec.back().flow = it->second;
+    }
+    int num = std::min(aggre.size(), static_cast<size_t>(count));
+    std::partial_sort(vec.begin(), vec.begin() + num, vec.end(), FlowGreaterComp(type));
+    vec.resize(num);
 }

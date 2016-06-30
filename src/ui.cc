@@ -1,13 +1,15 @@
 #include "ui.h"
 
-#include <time.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <ncurses.h>
+#include <iostream>
 #include "net_types.h"
 #include "syn_stat.h"
 #include "flow_stat.h"
+
+using namespace std;
 
 FlowStat f1(60, 2);    // 1分钟
 FlowStat f5(300, 10);   // 5分钟
@@ -21,10 +23,10 @@ static pthread_t ui_thread;
 
 void initUI(const char* interface) {
     // init ncurses
-    initscr();
-    cbreak();
-    keypad(stdscr, TRUE);
-    noecho();
+    //initscr();
+    //cbreak();
+    //keypad(stdscr, TRUE);
+    //noecho();
 
     // init ui update thread
     void *updateUIRoutine(void *arg);
@@ -39,17 +41,6 @@ void initUI(const char* interface) {
 void exitUI() {
     // end ncurses mode
     endwin();
-}
-
-static time_t getCurrentSeconds() {
-    struct timespec ts;
-    int ret = clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
-    if (ret != 0) {
-        perror("call clock_gettime failed");
-        exitUI();
-        exit(-1);
-    }
-    return ts.tv_sec;
 }
 
 void addData(const DataPoint& dp) {
@@ -69,6 +60,21 @@ void *updateUIRoutine(void *arg) {
     while (true) {
         sleep(1);
 
+        std::vector<SynStat::Result> syn_results;
+        s1.getResults(10, syn_results);
+        //for (int i = 0; i < syn_results.size(); ++i) {
+            //cout << syn_results[i].ip << "\t" << syn_results[i].nums_of_syn << endl;
+        //}
+
+
+        std::vector<FlowStat::Result> flow_results;
+        f1.getResults(10,  FlowStat::SORT_BY_TOTOAL, flow_results);
+        for (int i = 0; i < flow_results.size(); ++i) {
+            FlowStat::Result& r = flow_results[i];
+            std::cout << r.addr.ip << ":" << r.addr.port << "\t" << r.flow.in + r.flow.out << std::endl;
+        }
+
+        cout << "**********************" << endl << endl;
     }
 }
 

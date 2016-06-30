@@ -5,33 +5,36 @@
 
 SynStat::SynStat(int district, int precision):
     district_(district),
-    precision_(precision),
-    capacity_(district / precision),
-    last_time_(0)
+    precision_(precision)
 { }
 
 SynStat::~SynStat() {
 }
 
-void SynStat::addData(const DataPoint& dp, time_t t) {
+void SynStat::addData(const DataPoint& dp, time_t tm) {
     bool is_syn = dp.flags & TH_SYN;
     if (!is_syn) 
         return;
 
-    t = t / precision_;
+    int dist = tm / precision_;
 
     LockGuard guard(mu_);
 
-    if (datas_.empty() || last_time_ != t)  {
-        datas_.push_back(SynCntMap());
-        last_time_ = t;
+    if (datas_.empty() || datas_.back().dist != dist)  {
+        datas_.push_back(Elem());
+        datas_.back().dist = dist;
 
-        while (datas_.size() > capacity_) 
-            datas_.pop_front();
+        removeStaleUnlock(dist);
     }
 
-    SynCntMap& m = datas_.back();
+    SynCntMap& m = datas_.back().m;
     ++m[dp.ip];
+}
+
+void SynStat::removeStaleUnlock(int dist) {
+    while (!datas_.empty() && datas_.front().dist <= dist - district_ / precision_) {
+        datas_.pop_front();
+    }
 }
 
 static bool synGreaterComp(const SynStat::Result& lh, const SynStat::Result& rh) {
@@ -44,12 +47,16 @@ void SynStat::getResults(int count, std::vector<Result>& vec) {
     {
         LockGuard guard(mu_);
 
-        for (std::deque<SynCntMap>::iterator it = datas_.begin(); it != datas_.end(); ++it) {
-            SynCntMap& m = *it;
+        removeStaleUnlock(getCurrentSeconds() / precision_);
+
+        for (std::deque<Elem>::iterator it = datas_.begin(); it != datas_.end(); ++it) {
+            SynCntMap& m = it->m;
             for (SynCntMap::iterator it2 = m.begin(); it2 != m.end(); ++it2) 
                 aggre[it2->first] += it2->second;
         }
     }
+
+    if (aggre.empty()) return;
 
     vec.reserve(aggre.size());
     for (SynCntMap::iterator it = aggre.begin(); it != aggre.end(); ++it) {

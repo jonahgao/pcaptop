@@ -1,5 +1,7 @@
 #include "common.h"
 #include <iomanip>
+#include <stdio.h>
+#include <stdlib.h>
 
 std::ostream& operator<<(std::ostream&os, const DataPoint& dp) {
     os << "{ " << dp.ip << ":" << dp.port << ", " << (dp.direc == IN ? "IN" : "OUT")
@@ -9,4 +11,14 @@ std::ostream& operator<<(std::ostream&os, const DataPoint& dp) {
     os << std::dec;
 
     return os;
+}
+
+time_t getCurrentSeconds() {
+    struct timespec ts;
+    int ret = clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    if (ret != 0) {
+        perror("call clock_gettime failed");
+        exit(-1);
+    }
+    return ts.tv_sec;
 }

@@ -36,6 +36,13 @@ public:
 
         FlowCount() : in(0), out(0) {}
     };
+    
+    // 流量按什么排序
+    enum SortType {
+        SORT_BY_IN,
+        SORT_BY_OUT,
+        SORT_BY_TOTOAL
+    };
 
     struct Result {
         SrcAddr addr;
@@ -44,7 +51,7 @@ public:
 
 public:
     /**
-     * district: 统计区间，单位秒
+     * district: 统计区间长度，单位秒
      * precision: 精度，单位秒
      */
     FlowStat(int district, int precision);
@@ -53,24 +60,24 @@ public:
 
     void addData(const DataPoint& dp, time_t t);
 
-    void getResults(int count, std::vector<Result>& vec);
+    void getResults(int count, SortType type, std::vector<Result>& vec);
 
 private:
     typedef std::map<SrcAddr, FlowCount> FlowCntMap;
 
     struct Elem {
-        time_t t;
+        int dist;
         FlowCntMap m;
     };
 
 private:
     void addFlow(const DataPoint& dp, FlowCount& v);
+    void removeStaleUnlock(int dist);
     
 private:
     const int district_;
     const int precision_;
     std::deque<Elem> datas_;
-    const int capacity_;
     Mutex mu_;
 };
 

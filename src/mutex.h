@@ -37,7 +37,7 @@ public:
     }
 
     ~LockGuard() {
-        mutex_.lock();
+        mutex_.unlock();
     }
 
 private:
