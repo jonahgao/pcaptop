@@ -1,9 +1,11 @@
 #ifndef FLOW_STAT_H_XVAT5DKN
 #define FLOW_STAT_H_XVAT5DKN
 #include <time.h>
-#include <queue>
+#include <deque>
 #include <map>
+#include <vector>
 #include "common.h"
+#include "mutex.h"
 
 class FlowStat {
 public:
@@ -28,16 +30,16 @@ public:
         }
     };
 
-    struct FlowRate {
+    struct FlowCount {
         uint64_t in;
         uint64_t out;
 
-        FlowRate() : in(0), out(0) {}
+        FlowCount() : in(0), out(0) {}
     };
 
     struct Result {
         SrcAddr addr;
-        FlowRate flow;
+        FlowCount flow;
     };
 
 public:
@@ -54,21 +56,22 @@ public:
     void getResults(int count, std::vector<Result>& vec);
 
 private:
-    typedef std::map<SrcAddr, FlowRate> Map;
+    typedef std::map<SrcAddr, FlowCount> FlowCntMap;
 
     struct Elem {
         time_t t;
-        Map m;
+        FlowCntMap m;
     };
 
 private:
-    void addFlowRate(const DataPoint& dp, FlowRate& v);
+    void addFlow(const DataPoint& dp, FlowCount& v);
     
 private:
     const int district_;
     const int precision_;
-    std::queue<Elem> datas_;
+    std::deque<Elem> datas_;
     const int capacity_;
+    Mutex mu_;
 };
 
 

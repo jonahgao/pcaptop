@@ -14,7 +14,7 @@ FlowStat::FlowStat(int district, int precision) :
 FlowStat::~FlowStat() {
 }
 
-void FlowStat::addFlowRate(const DataPoint& dp, FlowRate& v) {
+void FlowStat::addFlow(const DataPoint& dp, FlowCount& v) {
     if (dp.direc == IN)
         v.in += dp.pktlen;
     else 
@@ -24,19 +24,21 @@ void FlowStat::addFlowRate(const DataPoint& dp, FlowRate& v) {
 void FlowStat::addData(const DataPoint& dp, time_t t) {
     t = t / precision_;
 
+    LockGuard guard(mu_);
+
     if (datas_.empty() || datas_.back().t != t) {
-        datas_.push(Elem());
+        datas_.push_back(Elem());
         datas_.back().t = t;
 
         while (datas_.size() > capacity_) 
-            datas_.pop();
+            datas_.pop_front();
     }
 
-    Map& m = datas_.back().m;
+    FlowCntMap& m = datas_.back().m;
 
-    Map::iterator last = m.end(); // ip:port相同idx最大的那个
+    FlowCntMap::iterator last = m.end(); // ip:port相同idx最大的那个
     SrcAddr addr(dp.ip, dp.port, std::numeric_limits<int>::max());
-    Map::iterator it = m.upper_bound(addr);
+    FlowCntMap::iterator it = m.upper_bound(addr);
     if (it != m.begin()) {
         --it;
         if (it->first.ip == dp.ip && last->first.port == dp.port)
@@ -49,20 +51,24 @@ void FlowStat::addData(const DataPoint& dp, time_t t) {
         if (last != m.end())
             sa.idx = last->first.idx + 1;
 
-        addFlowRate(dp, m[sa]);
+        addFlow(dp, m[sa]);
     }
     else {
         if (last != m.end()) {
-            addFlowRate(dp, last->second);
+            addFlow(dp, last->second);
         }
         else {
             SrcAddr sa(dp.ip, dp.port);
-            addFlowRate(dp, m[sa]);
+            addFlow(dp, m[sa]);
         }
     }
 }
 
 void FlowStat::getResults(int count, std::vector<Result>& vec) {
-    //TODO:
+    FlowCntMap aggre;
+
+    {
+        LockGuard guard(mu_);
+    }
     
 }

@@ -2,7 +2,9 @@
 #define SYN_STAT_H_9BMC37ZE
 #include <vector>
 #include <map>
-#include <queue>
+#include <deque>
+#include <vector>
+#include "mutex.h"
 #include "common.h"
 
 class SynStat {
@@ -10,6 +12,8 @@ public:
     struct Result {
         std::string ip;
         uint64_t nums_of_syn;
+
+        Result() : nums_of_syn(0) {}
     };
 
 public:
@@ -21,18 +25,15 @@ public:
     void getResults(int count, std::vector<Result>& vec);
 
 private:
-    typedef std::map<std::string, uint64_t> Map;
-
-    struct Elem {
-        time_t t;
-        Map m;
-    };
+    typedef std::map<std::string, uint64_t> SynCntMap;
 
 private:
     const int district_;
     const int precision_;
-    std::queue<Elem> datas_;
+    std::deque<SynCntMap> datas_;
     const int capacity_;
+    time_t last_time_;
+    Mutex mu_;
 };
 
 
