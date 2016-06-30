@@ -22,5 +22,7 @@ std::ostream& operator<<(std::ostream&os, const DataPoint& dp);
 
 time_t getCurrentSeconds();
 
+std::string perfectFlowValue(uint64_t value);
+
 
 #endif /* end of include guard: COMMON_H_Q8O1RUBZ */

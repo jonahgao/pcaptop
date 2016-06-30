@@ -22,3 +22,22 @@ time_t getCurrentSeconds() {
     }
     return ts.tv_sec;
 }
+
+std::string perfectFlowValue(uint64_t value) {
+    static const uint64_t KB = 1 << 10;
+    static const uint64_t MB = 1 << 20;
+    static const uint64_t GB = 1 << 30;
+
+    char buf[25] = {'\0'};
+
+    if (value >= GB)
+        snprintf(buf, 25, "%.3f%s", static_cast<double>(value) / GB, "GB");
+    else if (value >= MB)
+        snprintf(buf, 25, "%.3f%s", static_cast<double>(value) / MB, "MB");
+    else if (value >= KB)
+        snprintf(buf, 25, "%.3f%s", static_cast<double>(value) / KB, "KB");
+    else
+        snprintf(buf, 25, "%lu%s", value, "B");
+
+    return buf;
+}

@@ -69,9 +69,9 @@ void *updateUIRoutine(void *arg) {
 
         std::vector<FlowStat::Result> flow_results;
         f1.getResults(10,  FlowStat::SORT_BY_TOTOAL, flow_results);
-        for (int i = 0; i < flow_results.size(); ++i) {
+        for (size_t i = 0; i < flow_results.size(); ++i) {
             FlowStat::Result& r = flow_results[i];
-            std::cout << r.addr.ip << ":" << r.addr.port << "\t" << r.flow.in + r.flow.out << std::endl;
+            std::cout << r.addr.ip << ":" << r.addr.port << "\t" << perfectFlowValue(r.flow.in + r.flow.out) << std::endl;
         }
 
         cout << "**********************" << endl << endl;
