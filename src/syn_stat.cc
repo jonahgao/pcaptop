@@ -30,5 +30,5 @@ void SynStat::addData(const DataPoint& dp, time_t t) {
 }
 
 void SynStat::getResults(int count, std::vector<Result>& vec) {
-    //TODO:
+    std::map<std::string, uint64_t> aggregation;
 }
