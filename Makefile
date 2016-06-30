@@ -1,5 +1,5 @@
 
-CXXFLAGS += -O2
+CXXFLAGS += -O2 -g
 LDFLAGS += -lpcap -lncurses -lpthread -lrt
 
 SRC=$(shell echo src/*.cc)
