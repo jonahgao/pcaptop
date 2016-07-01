@@ -55,8 +55,6 @@ void getInterfaceIP(const char *interface, struct in_addr* if_ip_addr) {
 }
 
 void getPacket(u_char *arg, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
-    const struct sniff_ethernet *ethernet = (struct sniff_ethernet *)packet;
-
     const struct sniff_ip *ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
     u_int size_ip = IP_HL(ip)*4;
     if (size_ip < 20) {
