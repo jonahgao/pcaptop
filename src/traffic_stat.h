@@ -1,5 +1,6 @@
-#ifndef FLOW_STAT_H_XVAT5DKN
-#define FLOW_STAT_H_XVAT5DKN
+#ifndef TRAFFIC_STAT_H_CEAIF3MU
+#define TRAFFIC_STAT_H_CEAIF3MU
+
 #include <time.h>
 #include <deque>
 #include <map>
@@ -7,7 +8,7 @@
 #include "common.h"
 #include "mutex.h"
 
-class FlowStat {
+class TrafficStat {
 public:
     struct SrcAddr {
         std::string ip;
@@ -30,11 +31,11 @@ public:
         }
     };
 
-    struct FlowCount {
+    struct TrafficCount {
         uint64_t in;
         uint64_t out;
 
-        FlowCount() : in(0), out(0) {}
+        TrafficCount() : in(0), out(0) {}
     };
     
     // 流量按什么排序
@@ -46,7 +47,7 @@ public:
 
     struct Result {
         SrcAddr addr;
-        FlowCount flow;
+        TrafficCount flow;
     };
 
 public:
@@ -54,16 +55,16 @@ public:
      * district: 统计区间长度，单位秒
      * precision: 精度，单位秒
      */
-    FlowStat(int district, int precision);
+    TrafficStat(int district, int precision);
 
-    ~FlowStat();
+    ~TrafficStat();
 
     void addData(const DataPoint& dp, time_t t);
 
     void getResults(int count, SortType type, std::vector<Result>& vec);
 
 private:
-    typedef std::map<SrcAddr, FlowCount> FlowCntMap;
+    typedef std::map<SrcAddr, TrafficCount> FlowCntMap;
 
     struct Elem {
         int dist;
@@ -71,7 +72,7 @@ private:
     };
 
 private:
-    void addFlow(const DataPoint& dp, FlowCount& v);
+    void addFlow(const DataPoint& dp, TrafficCount& v);
     void removeStaleUnlock(int dist);
     
 private:
@@ -82,5 +83,4 @@ private:
 };
 
 
-
-#endif /* end of include guard: FLOW_STAT_H_XVAT5DKN */
+#endif /* end of include guard: TRAFFIC_STAT_H_CEAIF3MU */

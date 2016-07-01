@@ -4,6 +4,7 @@ LDFLAGS += -lpcap -lncurses -lpthread -lrt
 
 SRC=$(shell echo src/*.cc)
 OBJ=$(SRC:%.cc=obj/%.o)
+DEPENDS=$(OBJ:%.o=%.d)
 OUTPUT=./pcaptop
 
 $(OUTPUT):$(OBJ)
@@ -17,4 +18,4 @@ obj/%.o:%.cc
 
 .PHONY:clean
 clean:
-	@rm -rf $(OUTPUT) $(OBJ)
+	@rm -rf $(OUTPUT) $(OBJ) $(DEPENDS)

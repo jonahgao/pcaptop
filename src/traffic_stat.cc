@@ -1,33 +1,33 @@
-#include "flow_stat.h"
+#include "traffic_stat.h"
 
 #include <limits>
 #include <algorithm>
 #include "net_types.h"
 
-FlowStat::FlowStat(int district, int precision) :
+TrafficStat::TrafficStat(int district, int precision) :
     district_(district),
     precision_(precision)
 {
 }
 
 
-FlowStat::~FlowStat() {
+TrafficStat::~TrafficStat() {
 }
 
-void FlowStat::addFlow(const DataPoint& dp, FlowCount& v) {
+void TrafficStat::addFlow(const DataPoint& dp, TrafficCount& v) {
     if (dp.direc == IN)
         v.in += dp.pktlen;
     else 
         v.out += dp.pktlen;
 }
 
-void FlowStat::removeStaleUnlock(int dist) {
+void TrafficStat::removeStaleUnlock(int dist) {
     while (!datas_.empty() && datas_.front().dist <= dist - district_ / precision_) {
         datas_.pop_front();
     }
 }
 
-void FlowStat::addData(const DataPoint& dp, time_t tm) {
+void TrafficStat::addData(const DataPoint& dp, time_t tm) {
     int dist = tm / precision_;
 
     LockGuard guard(mu_);
@@ -70,17 +70,17 @@ void FlowStat::addData(const DataPoint& dp, time_t tm) {
 }
 
 struct FlowGreaterComp {
-    FlowStat::SortType t;
+    TrafficStat::SortType t;
 
-    FlowGreaterComp(FlowStat::SortType _t) : t(_t) {
+    FlowGreaterComp(TrafficStat::SortType _t) : t(_t) {
     }
 
-    bool operator()(const FlowStat::Result& lh, const FlowStat::Result& rh) {
+    bool operator()(const TrafficStat::Result& lh, const TrafficStat::Result& rh) {
         switch (t) {
-            case FlowStat::SORT_BY_IN:
+            case TrafficStat::SORT_BY_IN:
                 return lh.flow.in > rh.flow.in;
                 break;
-            case FlowStat::SORT_BY_OUT:
+            case TrafficStat::SORT_BY_OUT:
                 return lh.flow.out > rh.flow.out;
                 break;
             default:
@@ -90,7 +90,7 @@ struct FlowGreaterComp {
 };
 
 
-void FlowStat::getResults(int count, SortType type, std::vector<Result>& vec) {
+void TrafficStat::getResults(int count, SortType type, std::vector<Result>& vec) {
     FlowCntMap aggre;
 
     {
