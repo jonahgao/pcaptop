@@ -47,7 +47,7 @@ public:
 
     struct Result {
         SrcAddr addr;
-        TrafficCount flow;
+        TrafficCount traff;
     };
 
 public:
@@ -61,18 +61,18 @@ public:
 
     void addData(const DataPoint& dp, time_t t);
 
-    void getResults(int count, SortType type, std::vector<Result>& vec);
+    void getResults(int count, SortType type, std::vector<Result>& vec, int& active);
 
 private:
-    typedef std::map<SrcAddr, TrafficCount> FlowCntMap;
+    typedef std::map<SrcAddr, TrafficCount> TraffCntMap;
 
     struct Elem {
         int dist;
-        FlowCntMap m;
+        TraffCntMap m;
     };
 
 private:
-    void addFlow(const DataPoint& dp, TrafficCount& v);
+    void addTraff(const DataPoint& dp, TrafficCount& v);
     void removeStaleUnlock(int dist);
     
 private:

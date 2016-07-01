@@ -79,25 +79,38 @@ void addData(const DataPoint& dp) {
     s10.addData(dp, now);
 }
 
-void printTraffic(const std::vector<TrafficStat::Result>& results, int lines) {
-    if (lines < 2) 
-        return;
-    
+void printTraffic(int starty, const std::vector<TrafficStat::Result>& results) {
+    static const int kSpace = 3;
+    static const int kAddrLen = strlen("255.255.255.255:65535_65535") + kSpace;
+    static const int kTrafficLen = strlen("99999.999GB") + kSpace;
+
     // 状态烂
+    mvchgat(starty, 0 , kAddrLen + kTrafficLen * 3 + 4, A_REVERSE, 1, NULL);    
     attron(A_REVERSE);
-    mvprintw(1, 0, "CLIENT\tIN\tOUT\tTOTAL                                ");
+    mvprintw(starty, 0, "CLIENT");
+    mvprintw(starty, kAddrLen, "IN");
+    mvprintw(starty, kAddrLen + kTrafficLen, "OUT");
+    mvprintw(starty, kAddrLen + kTrafficLen * 2, "TOTAL");
     attroff(A_REVERSE);
 
     for (size_t i = 0; i < results.size(); ++i) {
         const TrafficStat::Result& r = results[i];
-        mvprintw(i + 2, 0, "%s:%u\t%s\t%s\t%s", r.addr.ip.c_str(), r.addr.port, 
-                perfectFlowValue(r.flow.in).c_str(),
-                perfectFlowValue(r.flow.out).c_str(),
-                perfectFlowValue(r.flow.in + r.flow.out).c_str());
+
+        // 源地址
+        char idx[15] = {'\0'};
+        if (r.addr.idx != 1)
+            snprintf(idx, 15, "_%d", r.addr.idx);
+        mvprintw(starty + 1 + i, 0, "%s:%u%s", r.addr.ip.c_str(), r.addr.port, idx);
+
+        // IN
+        mvprintw(starty + 1 + i, kAddrLen, "%s", perfectFlowValue(r.traff.in).c_str());
+        mvprintw(starty + 1 + i, kAddrLen + kTrafficLen, "%s", perfectFlowValue(r.traff.out).c_str());
+        mvprintw(starty + 1 + i, kAddrLen + kTrafficLen * 2, "%s", 
+                perfectFlowValue(r.traff.in + r.traff.out).c_str());
     }
 }
 
-void printSyn(const std::vector<SynStat::Result>& results, int lines) {
+void printSyn(int starty, const std::vector<SynStat::Result>& results) {
 
 }
 
@@ -110,11 +123,26 @@ void refreshUI(DistrictLength dl) {
     attron(A_BOLD);
     mvprintw(0, strlen(traff_hint), kDistrictLengthName[dl]);
     attroff(A_BOLD);
-    addstr(": ");
 
+    int traff_cnt = 20;
+    int active = 0;
     std::vector<TrafficStat::Result> traffic_results;
-    ft.getResults(20, TrafficStat::SORT_BY_TOTOAL, traffic_results);
-    printTraffic(traffic_results, 20 + 1);
+    switch (dl) {
+    case kOneMinutes:
+        f1.getResults(traff_cnt, TrafficStat::SORT_BY_TOTOAL, traffic_results, active);
+        break;
+    case kFiveMinutes:
+        f5.getResults(traff_cnt, TrafficStat::SORT_BY_TOTOAL, traffic_results, active);
+        break;
+    case kTenMinutes:
+        f10.getResults(traff_cnt, TrafficStat::SORT_BY_TOTOAL, traffic_results, active);
+        break;
+    case kTestMinutes:
+        ft.getResults(traff_cnt, TrafficStat::SORT_BY_TOTOAL, traffic_results, active);
+        break;
+    }
+    printw(": (%d active)", active);
+    printTraffic(1, traffic_results);
 
     refresh();
 };

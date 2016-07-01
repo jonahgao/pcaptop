@@ -14,7 +14,7 @@ TrafficStat::TrafficStat(int district, int precision) :
 TrafficStat::~TrafficStat() {
 }
 
-void TrafficStat::addFlow(const DataPoint& dp, TrafficCount& v) {
+void TrafficStat::addTraff(const DataPoint& dp, TrafficCount& v) {
     if (dp.direc == IN)
         v.in += dp.pktlen;
     else 
@@ -39,11 +39,11 @@ void TrafficStat::addData(const DataPoint& dp, time_t tm) {
         removeStaleUnlock(dist);
     }
 
-    FlowCntMap& m = datas_.back().m;
+    TraffCntMap& m = datas_.back().m;
 
-    FlowCntMap::iterator last = m.end(); // ip:port相同idx最大的那个
+    TraffCntMap::iterator last = m.end(); // ip:port相同idx最大的那个
     SrcAddr addr(dp.ip, dp.port, std::numeric_limits<int>::max());
-    FlowCntMap::iterator it = m.upper_bound(addr);
+    TraffCntMap::iterator it = m.upper_bound(addr);
     if (it != m.begin()) {
         --it;
         if (it->first.ip == dp.ip && last->first.port == dp.port)
@@ -56,15 +56,15 @@ void TrafficStat::addData(const DataPoint& dp, time_t tm) {
         if (last != m.end())
             sa.idx = last->first.idx + 1;
 
-        addFlow(dp, m[sa]);
+        addTraff(dp, m[sa]);
     }
     else {
         if (last != m.end()) {
-            addFlow(dp, last->second);
+            addTraff(dp, last->second);
         }
         else {
             SrcAddr sa(dp.ip, dp.port);
-            addFlow(dp, m[sa]);
+            addTraff(dp, m[sa]);
         }
     }
 }
@@ -78,20 +78,20 @@ struct FlowGreaterComp {
     bool operator()(const TrafficStat::Result& lh, const TrafficStat::Result& rh) {
         switch (t) {
             case TrafficStat::SORT_BY_IN:
-                return lh.flow.in > rh.flow.in;
+                return lh.traff.in > rh.traff.in;
                 break;
             case TrafficStat::SORT_BY_OUT:
-                return lh.flow.out > rh.flow.out;
+                return lh.traff.out > rh.traff.out;
                 break;
             default:
-                return (lh.flow.in + lh.flow.out) > (rh.flow.in + rh.flow.out);
+                return (lh.traff.in + lh.traff.out) > (rh.traff.in + rh.traff.out);
         }
     }
 };
 
-
-void TrafficStat::getResults(int count, SortType type, std::vector<Result>& vec) {
-    FlowCntMap aggre;
+ 
+void TrafficStat::getResults(int count, SortType type, std::vector<Result>& vec, int& active) {
+    TraffCntMap aggre;
 
     {
         LockGuard guard(mu_);
@@ -99,19 +99,21 @@ void TrafficStat::getResults(int count, SortType type, std::vector<Result>& vec)
         removeStaleUnlock(getCurrentSeconds() / precision_);
 
         for (std::deque<Elem>::iterator it = datas_.begin(); it!= datas_.end(); ++it) {
-            FlowCntMap &m = it->m;
-            for (FlowCntMap::iterator iter = m.begin(); iter != m.end(); ++iter) {
+            TraffCntMap &m = it->m;
+            for (TraffCntMap::iterator iter = m.begin(); iter != m.end(); ++iter) {
                 aggre[iter->first].in += iter->second.in;
                 aggre[iter->first].out += iter->second.out;
             }
         }
     }
 
+    active = aggre.size();
+
     vec.reserve(aggre.size());
-    for (FlowCntMap::iterator it = aggre.begin(); it != aggre.end(); ++it) {
+    for (TraffCntMap::iterator it = aggre.begin(); it != aggre.end(); ++it) {
         vec.push_back(Result());
         vec.back().addr = it->first;
-        vec.back().flow = it->second;
+        vec.back().traff = it->second;
     }
     int num = std::min(aggre.size(), static_cast<size_t>(count));
     std::partial_sort(vec.begin(), vec.begin() + num, vec.end(), FlowGreaterComp(type));
