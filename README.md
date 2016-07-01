@@ -2,8 +2,10 @@
 
 ## install
 prerequisites: 
-- libpcap 
-- libncurses
+- libpcap (library and headers)
+- libncurses (library and headers)
+
+type `make`
 
 ## usage
 pcaptop:    
