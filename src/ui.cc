@@ -24,6 +24,7 @@ enum ShowMode {
 FlowStat f1(60, 2);    // 1分钟
 FlowStat f5(300, 10);   // 5分钟
 FlowStat f10(600, 20);   // 10分钟
+FlowStat ft(40, 1);
 
 SynStat s1(60, 2);
 SynStat s5(300, 10);
@@ -62,6 +63,7 @@ void addData(const DataPoint& dp) {
     f1.addData(dp, now);
     f5.addData(dp, now);
     f10.addData(dp, now);
+    ft.addData(dp, now);
 
     s1.addData(dp, now);
     s5.addData(dp, now);
@@ -72,32 +74,35 @@ void addData(const DataPoint& dp) {
 void refreshUI(ShowMode mode) {
     erase();
 
-    if (mode == kOneMinutes) {
-        mvprintw(0, 0, "One");
-    }
-    else if (mode == kFiveMinutes) {
-        mvprintw(0, 0, "Five");
-    }
-    else if (mode == kTenMinutes) {
-        mvprintw(0, 0, "Ten");
-    }
-    else {
-    }
-        //std::vector<SynStat::Result> syn_results;
-        //s1.getResults(10, syn_results);
-        ////for (int i = 0; i < syn_results.size(); ++i) {
-            ////cout << syn_results[i].ip << "\t" << syn_results[i].nums_of_syn << endl;
-        ////}
-        ////
+    //if (mode == kOneMinutes) {
+        //mvprintw(0, 0, "One");
+    //}
+    //else if (mode == kFiveMinutes) {
+        //mvprintw(0, 0, "Five");
+    //}
+    //else if (mode == kTenMinutes) {
+        //mvprintw(0, 0, "Ten");
+    //}
+    //else {
+    //}
 
-        //std::vector<FlowStat::Result> flow_results;
-        //f1.getResults(10,  FlowStat::SORT_BY_TOTOAL, flow_results);
-        //for (size_t i = 0; i < flow_results.size(); ++i) {
-            //FlowStat::Result& r = flow_results[i];
-            //mvprintw(i, 0, "%s:%u\t%s", r.addr.ip.c_str(), r.addr.port, 
-                    //perfectFlowValue(r.flow.in + r.flow.out).c_str());
-            ////std::cout << r.addr.ip << ":" << r.addr.port << "\t" << perfectFlowValue(r.flow.in + r.flow.out) << std::endl;
-        //}
+    //std::vector<SynStat::Result> syn_results;
+    //s1.getResults(10, syn_results);
+    ////for (int i = 0; i < syn_results.size(); ++i) {
+        ////cout << syn_results[i].ip << "\t" << syn_results[i].nums_of_syn << endl;
+    ////}
+    ////
+
+    std::vector<FlowStat::Result> flow_results;
+    ft.getResults(10, FlowStat::SORT_BY_TOTOAL, flow_results);
+    mvprintw(0, 0, "Count: %d", flow_results.size());
+    for (size_t i = 0; i < flow_results.size(); ++i) {
+        FlowStat::Result& r = flow_results[i];
+        mvprintw(i + 1, 0, "%s:%u\t%s\t%s\t%s", r.addr.ip.c_str(), r.addr.port, 
+                perfectFlowValue(r.flow.in).c_str(),
+                perfectFlowValue(r.flow.out).c_str(),
+                perfectFlowValue(r.flow.in + r.flow.out).c_str());
+    }
 
     refresh();
 };
@@ -128,7 +133,7 @@ void *updateUIRoutine(void *arg) {
                 should_refresh = true;
                 mode = kTenMinutes;
                 break;
-            case ERR:
+            case ERR:           //超时
                 should_refresh = true;
                 break;
             default:
