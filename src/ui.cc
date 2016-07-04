@@ -79,6 +79,25 @@ void addData(const DataPoint& dp) {
     s10.addData(dp, now);
 }
 
+void printSyn(int starty, const std::vector<SynStat::Result>& results) {
+    static const int kSpace = 3;
+    static const int kAddrLen = strlen("255.255.255.255") + kSpace;
+    
+    // 状态烂
+    mvchgat(starty, 0 , kAddrLen + 4, A_REVERSE, 1, NULL);    
+    attron(A_REVERSE);
+    mvprintw(starty, 0, "CLIENT");
+    mvprintw(starty, kAddrLen, "SYN");
+    attroff(A_REVERSE);
+
+    for (size_t i = 0; i < results.size(); ++i) {
+        const SynStat::Result& r = results[i];
+
+        mvprintw(starty + 1 + i, 0, "%s", r.ip.c_str());
+        mvprintw(starty + 1 + i, kAddrLen, "%lu", r.nums_of_syn);
+    }
+}
+
 void printTraffic(int starty, const std::vector<TrafficStat::Result>& results) {
     static const int kSpace = 3;
     static const int kAddrLen = strlen("255.255.255.255:65535_65535") + kSpace;
@@ -110,10 +129,6 @@ void printTraffic(int starty, const std::vector<TrafficStat::Result>& results) {
     }
 }
 
-void printSyn(int starty, const std::vector<SynStat::Result>& results) {
-
-}
-
 void refreshUI(DistrictLength dl) {
     erase();
 
@@ -142,7 +157,26 @@ void refreshUI(DistrictLength dl) {
         break;
     }
     printw(": (%d active)", active);
-    printTraffic(1, traffic_results);
+    printTraffic(2, traffic_results);
+
+    int syn_cnt = 15;
+    std::vector<SynStat::Result> syn_results;
+    switch (dl) {
+    case kOneMinutes:
+        s1.getResults(syn_cnt, syn_results);
+        break;
+    case kFiveMinutes:
+        s5.getResults(syn_cnt, syn_results);
+        break;
+    case kTenMinutes:
+        s10.getResults(syn_cnt, syn_results);
+        break;
+    case kTestMinutes:
+        s1.getResults(syn_cnt, syn_results);
+        break;
+    }
+    
+    printSyn(1 + traffic_results.size() + 4, syn_results);
 
     refresh();
 };
@@ -188,8 +222,6 @@ void *updateUIRoutine(void *arg) {
 
         if (should_refresh) {
             last_refresh = getCurrentSeconds();
-            //TODO:
-            //refreshUI(kTestMinutes);
             refreshUI(dl);
         }
     }
