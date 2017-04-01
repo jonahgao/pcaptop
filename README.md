@@ -1,5 +1,5 @@
 # pcaptop
-
+显示到本机某个端口TCP流量最大和连接建立最多（SYN报文）的 top-N ip
 ## install
 prerequisites: 
 - libpcap (library and headers)
